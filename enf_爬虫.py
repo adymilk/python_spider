@@ -27,14 +27,18 @@ soup = BeautifulSoup(page, 'html.parser')
 title = soup.title.text
 title = ''.join(title.split())
 log('页面加载完成，网站标题是：'+title)
+with open(os.path.abspath("爬虫采集到的数据表.csv"), "w", newline='') as f:
+    writer = csv.writer(f)
+    # 先写入columns_name
+    writer.writerow(['company', 'address', 'website', 'telephone', 'email'])
 pagination = soup.find('ul', attrs={'class': 'enf-pagination'})
 paginations = len(pagination.find_all('li')) - 1
 log('系统检测到一共有' + str(paginations) + '页数据')
-for page in range(4):
+for pagination in range(paginations):
     time.sleep(2)
-    page = str(page + 1)
-    log('开始加载第'+ page +'页数据')
-    page = urllib.request.urlopen(urlpage+'?page='+page)
+    pagination = str(pagination + 1)
+    log('开始加载第'+ pagination +'页数据')
+    page = urllib.request.urlopen(urlpage+'?page='+pagination)
     soup = BeautifulSoup(page, 'html.parser')
     # 在表格中查找数据
     table = soup.find('table', attrs={'class': 'enf-list-table'})
@@ -43,8 +47,8 @@ for page in range(4):
     companies = []
     log('加载成功！当前页面检测到需要采集的公司数量有：' + str(len(results)))
     # 遍历所有数据
-    for index, result in results:
-        log('开始采集第'+ index +1 + '条')
+    for index in range(len(results)):
+        result = results[index]
         # 找到每一个 td 单元格的内容
         data = result.find('td').find('a')
         link = str(data.get('href')).strip()
@@ -55,12 +59,10 @@ for page in range(4):
         if len(data) == 0:
             continue
 
-    with open(os.path.abspath("爬虫采集到的数据表.csv"), "w", newline='') as f:
-        writer = csv.writer(f)
-        # 先写入columns_name
-        writer.writerow(['company', 'address', 'website', 'telephone', 'email'])
+
     for index, link in enumerate(links):
-        log('开始采集第' + str(index + 1) + '条数据')
+        company = companies[index]
+        log('开始采集第'+ pagination +'页第'+ str(index +1) + '条数据.公司名称：'+company)
         # 获取网页内容，把 HTML 数据保存在 page 变量中
         page = urllib.request.urlopen(link)
         # 用 Beautiful Soup 解析 html 数据，
@@ -69,7 +71,6 @@ for page in range(4):
         # 在表格中查找数据
         try:
             table = soup.find('div', attrs={'class': 'enf-company-profile-info-main-spec'})
-            company = companies[index]
             address = table.find('td', attrs={'itemprop': 'address'}).getText().strip()
             website = table.find('a', attrs={'itemprop': 'url'}).getText().strip()
             telephone = table.find('td', attrs={'itemprop': 'telephone'})
